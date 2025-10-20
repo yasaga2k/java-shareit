@@ -1,8 +1,6 @@
 package ru.practicum.shareit.item;
 
 import ru.practicum.shareit.item.dto.ItemDto;
-import ru.practicum.shareit.request.ItemRequest;
-import ru.practicum.shareit.user.User;
 
 public class ItemMapper {
     public static ItemDto toItemDto(Item item) {
