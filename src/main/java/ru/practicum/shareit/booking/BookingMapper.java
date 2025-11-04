@@ -17,7 +17,7 @@ public class BookingMapper {
         return booking;
     }
 
-    public static BookingResponseDto toResponseDto(Booking booking) {
+    public static BookingResponseDto toBookingResponseDto(Booking booking) {
         return new BookingResponseDto(
                 booking.getId(),
                 booking.getStart(),

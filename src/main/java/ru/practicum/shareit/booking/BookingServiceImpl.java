@@ -44,10 +44,10 @@ public class BookingServiceImpl implements BookingService {
         Booking booking = BookingMapper.toBooking(dto, item, booker);
         booking.setStatus(BookingStatus.WAITING);
 
-        return BookingMapper.toResponseDto(bookingRepository.save(booking));
+        return BookingMapper.toBookingResponseDto(bookingRepository.save(booking));
     }
 
-    @Transactional(propagation = Propagation.REQUIRES_NEW)
+    @Transactional
     @Override
     public BookingResponseDto approve(Long ownerId, Long bookingId, boolean approved) {
         Booking booking = bookingRepository.findById(bookingId)
@@ -63,7 +63,7 @@ public class BookingServiceImpl implements BookingService {
         booking.setStatus(approved ? BookingStatus.APPROVED : BookingStatus.REJECTED);
         bookingRepository.saveAndFlush(booking);
 
-        return BookingMapper.toResponseDto(booking);
+        return BookingMapper.toBookingResponseDto(booking);
     }
 
     @Override
@@ -76,7 +76,7 @@ public class BookingServiceImpl implements BookingService {
             throw new NotFoundException("У пользователя нет доступа к этому бронированию");
         }
 
-        return BookingMapper.toResponseDto(booking);
+        return BookingMapper.toBookingResponseDto(booking);
     }
 
     @Override
@@ -84,43 +84,38 @@ public class BookingServiceImpl implements BookingService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new NotFoundException("Пользователь не найден"));
 
-        List<Booking> bookings = bookingRepository.findAllByBooker(user);
-        return filterAndSort(bookings, state).stream()
-                .map(BookingMapper::toResponseDto)
+        List<Booking> bookings = switch (state.toUpperCase()) {
+            case "ALL" -> bookingRepository.findByBookerOrderByStartDesc(user);
+            case "CURRENT" -> bookingRepository.findByBookerAndStartIsBeforeAndEndIsAfterOrderByStartDesc(user, LocalDateTime.now(), LocalDateTime.now());
+            case "PAST" -> bookingRepository.findByBookerAndEndIsBeforeOrderByStartDesc(user, LocalDateTime.now());
+            case "FUTURE" -> bookingRepository.findByBookerAndStartIsAfterOrderByStartDesc(user, LocalDateTime.now());
+            case "WAITING" -> bookingRepository.findByBookerAndStatusOrderByStartDesc(user, BookingStatus.WAITING);
+            case "REJECTED" -> bookingRepository.findByBookerAndStatusOrderByStartDesc(user, BookingStatus.REJECTED);
+            default -> throw new IllegalArgumentException("Неизвестный статус: " + state);
+        };
+
+        return bookings.stream()
+                .map(BookingMapper::toBookingResponseDto)
                 .collect(Collectors.toList());
     }
 
     @Override
     public List<BookingResponseDto> getAllByOwner(Long ownerId, String state) {
-        List<Booking> all = bookingRepository.findAll().stream()
-                .filter(b -> b.getItem() != null
-                        && b.getItem().getOwner() != null
-                        && b.getItem().getOwner().getId().equals(ownerId))
-                .collect(Collectors.toList());
+        User owner = userRepository.findById(ownerId)
+                .orElseThrow(() -> new NotFoundException("Пользователь не найден"));
 
-        if (all.isEmpty()) {
-            throw new UnauthorizedException("Пользователь не является владельцем вещей");
-        }
-
-        return filterAndSort(all, state).stream()
-                .map(BookingMapper::toResponseDto)
-                .collect(Collectors.toList());
-    }
-
-    private List<Booking> filterAndSort(List<Booking> bookings, String state) {
-        LocalDateTime now = LocalDateTime.now();
+        List<Booking> bookings = switch (state.toUpperCase()) {
+            case "ALL" -> bookingRepository.findByItemOwnerOrderByStartDesc(owner);
+            case "CURRENT" -> bookingRepository.findByItemOwnerAndStartIsBeforeAndEndIsAfterOrderByStartDesc(owner, LocalDateTime.now(), LocalDateTime.now());
+            case "PAST" -> bookingRepository.findByItemOwnerAndEndIsBeforeOrderByStartDesc(owner, LocalDateTime.now());
+            case "FUTURE" -> bookingRepository.findByItemOwnerAndStartIsAfterOrderByStartDesc(owner, LocalDateTime.now());
+            case "WAITING" -> bookingRepository.findByItemOwnerAndStatusOrderByStartDesc(owner, BookingStatus.WAITING);
+            case "REJECTED" -> bookingRepository.findByItemOwnerAndStatusOrderByStartDesc(owner, BookingStatus.REJECTED);
+            default -> throw new IllegalArgumentException("Неизвестный статус: " + state);
+        };
 
         return bookings.stream()
-                .filter(b -> switch (state.toUpperCase()) {
-                    case "ALL" -> true;
-                    case "CURRENT" -> !b.getStart().isAfter(now) && !b.getEnd().isBefore(now);
-                    case "PAST" -> b.getEnd().isBefore(now);
-                    case "FUTURE" -> b.getStart().isAfter(now);
-                    case "WAITING" -> b.getStatus() == BookingStatus.WAITING;
-                    case "REJECTED" -> b.getStatus() == BookingStatus.REJECTED;
-                    default -> true;
-                })
-                .sorted((b1, b2) -> b2.getStart().compareTo(b1.getStart()))
+                .map(BookingMapper::toBookingResponseDto)
                 .collect(Collectors.toList());
     }
 }
