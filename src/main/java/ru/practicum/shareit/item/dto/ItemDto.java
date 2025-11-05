@@ -7,6 +7,9 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.FieldDefaults;
+import ru.practicum.shareit.booking.dto.BookingDto;
+
+import java.util.List;
 
 @Data
 @AllArgsConstructor
@@ -21,4 +24,8 @@ public class ItemDto {
     @NotNull(message = "available должен быть указан")
     Boolean available;
     Long requestId;
+    List<CommentDto> comments;
+
+    BookingDto lastBooking;
+    BookingDto nextBooking;
 }

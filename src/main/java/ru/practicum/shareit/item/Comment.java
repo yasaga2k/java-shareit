@@ -1,4 +1,4 @@
-package ru.practicum.shareit.request;
+package ru.practicum.shareit.item;
 
 import jakarta.persistence.*;
 import lombok.AccessLevel;
@@ -11,23 +11,27 @@ import ru.practicum.shareit.user.User;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "item_requests")
+@Table(name = "comments")
 @Data
-@AllArgsConstructor
 @NoArgsConstructor
+@AllArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class ItemRequest {
+public class Comment {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     Long id;
 
-    @Column(name = "description", nullable = false)
-    String description;
+    @Column(nullable = false)
+    String text;
 
     @ManyToOne
-    @JoinColumn(name = "requester_id", nullable = false)
-    User requester;
+    @JoinColumn(name = "item_id", nullable = false)
+    Item item;
 
-    @Column(name = "created", nullable = false)
+    @ManyToOne
+    @JoinColumn(name = "author_id", nullable = false)
+    User author;
+
+    @Column(nullable = false)
     LocalDateTime created;
 }

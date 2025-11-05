@@ -1,60 +1,54 @@
 package ru.practicum.shareit.item;
 
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import ru.practicum.shareit.booking.BookingRepository;
+import ru.practicum.shareit.booking.BookingStatus;
 import ru.practicum.shareit.exceptions.NotFoundException;
 import ru.practicum.shareit.exceptions.UnauthorizedException;
+import ru.practicum.shareit.exceptions.ValidationException;
+import ru.practicum.shareit.item.dto.CommentDto;
 import ru.practicum.shareit.item.dto.ItemDto;
 import ru.practicum.shareit.user.User;
 import ru.practicum.shareit.user.UserService;
 
-import java.util.*;
+import java.time.LocalDateTime;
+import java.util.List;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 @Service
+@RequiredArgsConstructor
 public class ItemServiceImpl implements ItemService {
-    private final Map<Long, Item> items = new HashMap<>();
+
+    private final ItemRepository itemRepository;
     private final UserService userService;
-    private long nextId = 1;
-
-    public ItemServiceImpl(UserService userService) {
-        this.userService = userService;
-    }
-
-    private void validateOwnerExistsOrThrow(Long ownerId) {
-        if (!userService.existsById(ownerId)) {
-            throw new NotFoundException("Owner not found with id: " + ownerId);
-        }
-    }
+    private final BookingRepository bookingRepository;
+    private final CommentRepository commentRepository;
 
     private Item getItemByIdOrThrow(Long id) {
-        Item item = items.get(id);
-        if (item == null) {
-            throw new NotFoundException("Вещь с таким айди " + id + " не найдена");
-        }
-        return item;
+        return itemRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException("Вещь с таким айди " + id + " не найдена"));
     }
 
     @Override
     public ItemDto create(Long ownerId, ItemDto itemDto) {
-        validateOwnerExistsOrThrow(ownerId);
+        userService.getUserById(ownerId); // бросит NotFoundException, если нет
 
         Item item = ItemMapper.toItem(itemDto);
-        Long id = nextId++;
-        item.setId(id);
 
         User owner = userService.getUserById(ownerId);
         item.setOwner(owner);
 
-        items.put(id, item);
-
-        return ItemMapper.toItemDto(item);
+        Item savedItem = itemRepository.save(item);
+        return ItemMapper.toItemDto(savedItem);
     }
 
     @Override
     public ItemDto update(Long ownerId, Long id, ItemDto itemDto) {
         Item existing = getItemByIdOrThrow(id);
 
-        if (!existing.getOwner().getId().equals(ownerId)) {
+        if (!Objects.equals(existing.getOwner().getId(), ownerId)) {
             throw new UnauthorizedException("Только владелец может менять название товара");
         }
 
@@ -67,34 +61,66 @@ public class ItemServiceImpl implements ItemService {
         if (itemDto.getAvailable() != null) {
             existing.setAvailable(itemDto.getAvailable());
         }
-        return ItemMapper.toItemDto(existing);
+
+        Item updatedItem = itemRepository.save(existing);
+        return ItemMapper.toItemDto(updatedItem);
     }
 
     @Override
     public ItemDto getItemById(Long id) {
         Item item = getItemByIdOrThrow(id);
-        return ItemMapper.toItemDto(item);
+
+        List<Comment> comments = commentRepository.findByItemIdOrderByCreatedDesc(id);
+        List<CommentDto> commentDto = comments.stream()
+                .map(CommentMapper::toCommentDto)
+                .collect(Collectors.toList());
+
+        ItemDto dto = ItemMapper.toItemDto(item);
+        dto.setComments(commentDto);
+        return dto;
     }
 
     @Override
     public List<ItemDto> getItemsByOwner(Long ownerId) {
-        return items.values().stream()
-                .filter(item -> Objects.equals(item.getOwner().getId(), ownerId))
+        List<Item> items = itemRepository.findByOwnerId(ownerId);
+        return items.stream()
                 .map(ItemMapper::toItemDto)
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @Override
     public List<ItemDto> searchItems(String text) {
         if (text == null || text.isBlank()) {
-            return Collections.emptyList();
+            return List.of();
         }
-        String lowerCase = text.toLowerCase();
-        return items.values().stream()
-                .filter(item -> item.getAvailable())
-                .filter(item -> item.getName().toLowerCase().contains(lowerCase) ||
-                        item.getDescription().toLowerCase().contains(lowerCase))
+        String lowerCaseText = text.toLowerCase();
+        List<Item> items = itemRepository.searchByText(lowerCaseText);
+        return items.stream()
                 .map(ItemMapper::toItemDto)
                 .collect(Collectors.toList());
+    }
+
+    @Override
+    public CommentDto addComment(Long userId, Long itemId, String text) {
+        Item item = itemRepository.findById(itemId)
+                .orElseThrow(() -> new NotFoundException("Вещь не найдена"));
+
+        User author = userService.getUserById(userId);
+
+        boolean hasBooking = bookingRepository.existsByBookerIdAndItemIdAndStatusAndEndBefore(
+                userId, itemId, BookingStatus.APPROVED, LocalDateTime.now());
+        if (!hasBooking) {
+            throw new ValidationException("Пользователь не брал вещь в аренду");
+        }
+
+        Comment comment = new Comment();
+        comment.setText(text);
+        comment.setItem(item);
+        comment.setAuthor(author);
+        comment.setCreated(LocalDateTime.now());
+
+        Comment savedComment = commentRepository.save(comment);
+
+        return CommentMapper.toCommentDto(savedComment);
     }
 }

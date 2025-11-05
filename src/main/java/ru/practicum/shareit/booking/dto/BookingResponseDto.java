@@ -1,11 +1,13 @@
 package ru.practicum.shareit.booking.dto;
 
-import jakarta.validation.constraints.NotNull;
 import lombok.AccessLevel;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import lombok.experimental.FieldDefaults;
+import ru.practicum.shareit.booking.BookingStatus;
+import ru.practicum.shareit.item.dto.ItemDto;
+import ru.practicum.shareit.user.dto.UserDto;
 
 import java.time.LocalDateTime;
 
@@ -13,12 +15,14 @@ import java.time.LocalDateTime;
 @AllArgsConstructor
 @NoArgsConstructor
 @FieldDefaults(level = AccessLevel.PRIVATE)
-public class BookingDto {
+public class BookingResponseDto {
     Long id;
-    @NotNull(message = "itemId не должен быть пустым")
-    Long itemId;
-    @NotNull(message = "Start не должен быть пустым")
     LocalDateTime start;
-    @NotNull(message = "End date не должен быть пустым")
     LocalDateTime end;
+    Long itemId;
+    String itemName;
+    Long bookerId;
+    BookingStatus status;
+    UserDto booker;
+    ItemDto item;
 }

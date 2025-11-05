@@ -1,34 +1,36 @@
 package ru.practicum.shareit.user;
 
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import ru.practicum.shareit.exceptions.ConflictException;
 import ru.practicum.shareit.exceptions.NotFoundException;
 import ru.practicum.shareit.user.dto.UserDto;
 
 import java.util.List;
-import java.util.HashMap;
-import java.util.Map;
 
 @Service
+@RequiredArgsConstructor
 public class UserServiceImpl implements UserService {
 
-    private final Map<Long, User> users = new HashMap<>();
-    private long nextId = 1;
+    private final UserRepository userRepository;
 
     private void validateEmailIsUnique(String email, Long userIdToIgnore) {
-        for (User u : users.values()) {
-            if (u.getEmail().equals(email) && !u.getId().equals(userIdToIgnore)) {
+        if (userRepository.existsByEmail(email)) {
+            User existingUser = findUserByEmail(email);
+            if (userIdToIgnore == null || !existingUser.getId().equals(userIdToIgnore)) {
                 throw new ConflictException("Email уже используется: " + email);
             }
         }
     }
 
+    private User findUserByEmail(String email) {
+        return userRepository.findByEmail(email)
+                .orElseThrow(() -> new ConflictException("Email уже используется: " + email));
+    }
+
     private User getUserByIdOrThrow(Long id) {
-        User user = users.get(id);
-        if (user == null) {
-            throw new NotFoundException("Пользователь с айди " + id + " не найден");
-        }
-        return user;
+        return userRepository.findById(id)
+                .orElseThrow(() -> new NotFoundException("Пользователь с айди " + id + " не найден"));
     }
 
     @Override
@@ -36,10 +38,8 @@ public class UserServiceImpl implements UserService {
         validateEmailIsUnique(userDto.getEmail(), null);
 
         User user = UserMapper.toUser(userDto);
-        Long id = nextId++;
-        user.setId(id);
-        users.put(id, user);
-        return UserMapper.toUserDto(user);
+        User savedUser = userRepository.save(user);
+        return UserMapper.toUserDto(savedUser);
     }
 
     @Override
@@ -54,7 +54,8 @@ public class UserServiceImpl implements UserService {
             existing.setEmail(userDto.getEmail());
         }
 
-        return UserMapper.toUserDto(existing);
+        User updatedUser = userRepository.save(existing);
+        return UserMapper.toUserDto(updatedUser);
     }
 
     @Override
@@ -70,7 +71,8 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public List<UserDto> getAll() {
-        return users.values().stream()
+        List<User> users = userRepository.findAll();
+        return users.stream()
                 .map(UserMapper::toUserDto)
                 .toList();
     }
@@ -78,11 +80,11 @@ public class UserServiceImpl implements UserService {
     @Override
     public void delete(Long id) {
         getUserByIdOrThrow(id);
-        users.remove(id);
+        userRepository.deleteById(id);
     }
 
     @Override
     public boolean existsById(Long id) {
-        return users.containsKey(id);
+        return userRepository.existsById(id);
     }
 }
