@@ -43,7 +43,6 @@ public class UserServiceImpl implements UserService {
             throw new ValidationException("Invalid email format");
         }
 
-        // Затем проверяем уникальность
         validateEmailIsUnique(userDto.getEmail(), null);
 
         User user = UserMapper.toUser(userDto);
