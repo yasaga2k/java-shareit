@@ -1,4 +1,5 @@
 FROM eclipse-temurin:21-jre-jammy
 VOLUME /tmp
-COPY shareIt-gateway/target/shareit-gateway-*.jar app.jar
+ARG JAR_FILE=../shareit-gateway/target/*.jar
+COPY ${JAR_FILE} app.jar
 ENTRYPOINT ["sh", "-c", "java ${JAVA_OPTS} -jar /app.jar"]
