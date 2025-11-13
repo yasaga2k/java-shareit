@@ -44,11 +44,10 @@ public class ItemRequestServiceImpl implements ItemRequestService {
 
     @Override
     public List<ItemRequestDto> getAllByRequester(Long userId) {
+
         userService.getUserById(userId);
 
-        List<ItemRequest> requests = requestRepository.findAllByRequesterIdNotOrderByCreatedDesc(userId);
-
-        System.out.println("SERVER: Found " + requests.size() + " requests for user " + userId);
+        List<ItemRequest> requests = requestRepository.findByRequesterIdOrderByCreatedDesc(userId);
 
         return requests.stream()
                 .map(ItemRequestMapper::toItemRequestDto)
@@ -66,6 +65,8 @@ public class ItemRequestServiceImpl implements ItemRequestService {
                 .map(ItemRequestMapper::toItemRequestDto)
                 .collect(Collectors.toList());
     }
+
+
 
     @Override
     public ItemRequestDto getById(Long userId, Long requestId) {
