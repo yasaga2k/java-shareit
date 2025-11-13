@@ -89,14 +89,16 @@ public class ItemServiceImpl implements ItemService {
                 .map(CommentMapper::toCommentDto)
                 .collect(Collectors.toList());
 
-        ItemDto dto = new ItemDto(
-                item.getId(),
-                item.getName(),
-                item.getDescription(),
-                item.getAvailable(),
-                item.getRequest() != null ? item.getRequest().getId() : null,
-                commentDtos
-        );
+        ItemDto dto = ItemDto.builder()
+                .id(item.getId())
+                .name(item.getName())
+                .description(item.getDescription())
+                .available(item.getAvailable())
+                .requestId(item.getRequest() != null ? item.getRequest().getId() : null)
+                .comments(commentDtos)
+                .lastBooking(null)
+                .nextBooking(null)
+                .build();
 
         return dto;
     }
@@ -117,7 +119,9 @@ public class ItemServiceImpl implements ItemService {
                             item.getDescription(),
                             item.getAvailable(),
                             item.getRequest() != null ? item.getRequest().getId() : null,
-                            commentDtos
+                            commentDtos,
+                            null,
+                            null
                     );
                 })
                 .collect(Collectors.toList());

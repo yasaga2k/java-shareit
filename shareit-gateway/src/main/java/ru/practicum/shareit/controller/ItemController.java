@@ -3,6 +3,7 @@ package ru.practicum.shareit.controller;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import ru.practicum.shareit.client.ItemClient;
 import ru.practicum.shareit.dtos.CommentRequestDto;
@@ -11,6 +12,7 @@ import ru.practicum.shareit.dtos.ItemDto;
 @RestController
 @RequestMapping("/items")
 @RequiredArgsConstructor
+@Validated
 public class ItemController {
 
     private final ItemClient itemClient;

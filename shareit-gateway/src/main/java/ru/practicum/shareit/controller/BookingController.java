@@ -3,6 +3,7 @@ package ru.practicum.shareit.controller;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import ru.practicum.shareit.client.BookingClient;
 import ru.practicum.shareit.dtos.BookingDto;
@@ -10,6 +11,7 @@ import ru.practicum.shareit.dtos.BookingDto;
 @RestController
 @RequestMapping(path = "/bookings")
 @RequiredArgsConstructor
+@Validated
 public class BookingController {
 
     private final BookingClient bookingClient;

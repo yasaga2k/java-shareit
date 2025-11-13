@@ -21,11 +21,9 @@ public class UserController {
 
     @PatchMapping("/{id}")
     public UserDto update(@PathVariable Long id, @RequestBody UserDto userDto) {
-        System.out.println("SERVER: PATCH /users/" + id + " received: " + userDto);
 
         UserDto result = userService.update(id, userDto);
 
-        System.out.println("SERVER: PATCH /users/" + id + " returning: " + result);
         return result;
     }
 
