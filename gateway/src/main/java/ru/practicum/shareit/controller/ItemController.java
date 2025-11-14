@@ -1,0 +1,67 @@
+package ru.practicum.shareit.controller;
+
+import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
+import org.springframework.http.ResponseEntity;
+import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.*;
+import ru.practicum.shareit.client.ItemClient;
+import ru.practicum.shareit.dtos.CommentRequestDto;
+import ru.practicum.shareit.dtos.ItemDto;
+
+@RestController
+@RequestMapping("/items")
+@RequiredArgsConstructor
+@Validated
+public class ItemController {
+
+    private final ItemClient itemClient;
+
+    @PostMapping
+    public ResponseEntity<Object> create(
+            @RequestHeader("X-Sharer-User-Id") Long ownerId,
+            @Valid @RequestBody ItemDto itemDto
+    ) {
+        return itemClient.create(ownerId, itemDto);
+    }
+
+    @PatchMapping("/{id}")
+    public ResponseEntity<Object> update(
+            @RequestHeader("X-Sharer-User-Id") Long ownerId,
+            @PathVariable Long id,
+            @RequestBody ItemDto itemDto
+    ) {
+        return itemClient.update(id, ownerId, itemDto);
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<Object> getById(
+            @PathVariable Long id,
+            @RequestHeader("X-Sharer-User-Id") Long userId
+    ) {
+        return itemClient.getById(id, userId);
+    }
+
+    @GetMapping
+    public ResponseEntity<Object> getByOwner(
+            @RequestHeader("X-Sharer-User-Id") Long ownerId
+    ) {
+        return itemClient.getByOwner(ownerId);
+    }
+
+    @GetMapping("/search")
+    public ResponseEntity<Object> search(
+            @RequestParam String text
+    ) {
+        return itemClient.search(text);
+    }
+
+    @PostMapping("/{itemId}/comment")
+    public ResponseEntity<Object> addComment(
+            @RequestHeader("X-Sharer-User-Id") Long userId,
+            @PathVariable Long itemId,
+            @RequestBody CommentRequestDto commentRequest) {
+
+        return itemClient.addComment(userId, itemId, commentRequest);
+    }
+}
